@@ -1,6 +1,35 @@
+import { CURRENCIES } from './constants';
+
 export const formatters = {
-    currency: (amount, currency = '$') => {
-        return `${currency}${Math.abs(amount).toFixed(2)}`;
+    currency: (amount, currency = 'USD') => {
+        const currencyInfo = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
+
+        return new Intl.NumberFormat(currencyInfo.locale, {
+            style: 'currency',
+            currency: currencyInfo.code,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    },
+
+    shortCurrency: (amount, currency = 'USD') => {
+        const currencyInfo = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
+
+        if (amount >= 1000) {
+            return `${currencyInfo.symbol}${(amount / 1000).toFixed(1)}K`;
+        }
+        return formatters.currency(amount, currency);
+    },
+
+    percentage: (value) => {
+        return `${value.toFixed(1)}%`;
+    },
+
+    shortDate: (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+        });
     },
 
     date: (date) => {
@@ -11,16 +40,6 @@ export const formatters = {
         });
     },
 
-    shortDate: (date) => {
-        return new Date(date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric'
-        });
-    },
-
-    percentage: (value) => {
-        return `${value.toFixed(1)}%`;
-    },
 
     monthYear: (date) => {
         return new Date(date).toLocaleDateString('en-US', {

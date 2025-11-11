@@ -42,3 +42,18 @@ export const VIEW_TYPES = {
     TRANSACTIONS: 'transactions',
     SETTINGS: 'settings'
 };
+
+export const CURRENCIES = [
+    { code: 'USD', symbol: '$', name: 'US Dollar', locale: 'en-US' },
+    { code: 'EUR', symbol: '€', name: 'Euro', locale: 'en-EU' },
+    { code: 'GBP', symbol: '£', name: 'British Pound', locale: 'en-GB' },
+    { code: 'NGN', symbol: '₦', name: 'Nigerian Naira', locale: 'en-NG' },
+    { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling', locale: 'en-KE' },
+    { code: 'GHS', symbol: 'GH₵', name: 'Ghanaian Cedi', locale: 'en-GH' },
+    { code: 'INR', symbol: '₹', name: 'Indian Rupee', locale: 'en-IN' },
+    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', locale: 'en-CA' },
+    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', locale: 'en-AU' },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen', locale: 'ja-JP' }
+];
+
+export const DEFAULT_CURRENCY = 'USD';

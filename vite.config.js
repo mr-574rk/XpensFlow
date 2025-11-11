@@ -94,5 +94,14 @@ export default defineConfig({
     sourcemap: false,
     minify: 'esbuild',
     target: 'esnext'
+  },
+  server: {
+    port: 3000
+  },
+  // Important for SPA routing
+  base: './',
+  // Optimize for production
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'recharts']
   }
 });

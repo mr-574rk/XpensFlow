@@ -3,7 +3,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Lock, Unlock, Download, Upload, Moon, Sun, Trash2, Database, Shield } from 'lucide-react';
-import { CATEGORIES } from '../utils/constants';
+import { CATEGORIES, CURRENCIES } from '../utils/constants';
 import { formatters } from '../utils/formatters';
 import { useApp } from '../context/useApp';
 import { DebugOverlay } from '../components/DebugOverlay';
@@ -24,10 +24,13 @@ export const Settings = () => {
         securityManager,
         lockApp,
         setAutoLockDuration,
-        getSecurityStatus
+        getSecurityStatus,
+        currency,
+        setCurrency
     } = useApp();
 
     const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0].name);
+    const [showCurrencySuccess, setShowCurrencySuccess] = useState(false);
     const [budgetAmount, setBudgetAmount] = useState('');
     const [passphrase, setPassphrase] = useState('');
     const [showEncryptionSetup, setShowEncryptionSetup] = useState(false);
@@ -56,7 +59,14 @@ export const Settings = () => {
             console.error('Failed to load DB stats:', error);
         }
     };
-
+    const handleCurrencyChange = async (newCurrency) => {
+        const result = await setCurrency(newCurrency);
+        if (result) {
+            setShowCurrencySuccess(true);
+            setTimeout(() => setShowCurrencySuccess(false), 3000);
+            showToast(`Currency updated to ${newCurrency}`, 'success');
+        }
+    };
     const loadBackups = async () => {
         try {
             if (databaseManager && databaseManager.isInitialized) {
@@ -326,7 +336,62 @@ export const Settings = () => {
                     </div>
                 )}
             </div>
+            {/* Currency Settings */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-bold mb-4 dark:text-white flex items-center gap-2">
+                    <Globe size={20} />
+                    Currency Settings
+                </h3>
 
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-2 dark:text-gray-300">
+                            Preferred Currency
+                        </label>
+                        <select
+                            value={currency}
+                            onChange={(e) => handleCurrencyChange(e.target.value)}
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        >
+                            {CURRENCIES.map(curr => (
+                                <option key={curr.code} value={curr.code}>
+                                    {curr.symbol} {curr.name} ({curr.code})
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            This affects how all amounts are displayed throughout the app.
+                        </p>
+                    </div>
+
+                    {/* Currency Preview */}
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <h4 className="font-medium mb-2 dark:text-white">Preview</h4>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="text-gray-600 dark:text-gray-400">Income:</div>
+                            <div className="font-medium dark:text-white">
+                                {formatters.currency(1500, currency)}
+                            </div>
+                            <div className="text-gray-600 dark:text-gray-400">Expense:</div>
+                            <div className="font-medium dark:text-white">
+                                {formatters.currency(75.50, currency)}
+                            </div>
+                            <div className="text-gray-600 dark:text-gray-400">Large Amount:</div>
+                            <div className="font-medium dark:text-white">
+                                {formatters.currency(12500, currency)}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Success Message */}
+                    {showCurrencySuccess && (
+                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900 p-3 rounded-lg">
+                            <CheckCircle size={16} />
+                            <span className="text-sm">Currency updated to {currency}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
             {/* Security & Encryption */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                 <h3 className="text-lg font-bold mb-4 dark:text-white flex items-center gap-2">

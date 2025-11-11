@@ -16,6 +16,10 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { useToast } from './hooks/useToast';
 import { AppLockScreen } from './components/AppLockScreen';
+import { OfflineFallback } from './components/OfflineFallback';
+import { InstallPrompt } from './components/InstallPrompt';
+import { CurrencyNotification } from './components/CurrencyNotification';
+import { usePWA } from './hooks/usePWA';
 
 const AppContent = () => {
   const {
@@ -42,7 +46,8 @@ const AppContent = () => {
     databaseManager,
     dbInitialized,
     securityManager,
-    lockApp
+    lockApp,
+    currency
   } = useApp();
 
   const [showForm, setShowForm] = useState(false);
@@ -52,6 +57,11 @@ const AppContent = () => {
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
+  const { showInstallPrompt, installPWA, dismissInstallPrompt } = usePWA();
+
+  // Currency notification state
+  const [showCurrencyNotification, setShowCurrencyNotification] = useState(false);
+  const [hasSeenCurrencyNotification, setHasSeenCurrencyNotification] = useState(false);
   // Track if app should be locked - use ref for immediate updates
   const [shouldShowLockScreen, setShouldShowLockScreen] = useState(true);
   const securityStateRef = useRef(null);
@@ -139,6 +149,21 @@ const AppContent = () => {
     checkOnboardingStatus();
   }, [dbInitialized, databaseManager, onboardingChecked]);
 
+  useEffect(() => {
+    if (!showOnboarding && !hasSeenCurrencyNotification && dbInitialized && currency === 'USD') {
+      const timer = setTimeout(() => {
+        setShowCurrencyNotification(true);
+        setHasSeenCurrencyNotification(true);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showOnboarding, hasSeenCurrencyNotification, dbInitialized, currency]);
+
+  const handleGoToSettings = () => {
+    setView('settings');
+    setShowCurrencyNotification(false);
+  };
   const handleOnboardingComplete = async (setupData) => {
     try {
       console.log('Completing onboarding with data:', setupData);
@@ -230,6 +255,20 @@ const AppContent = () => {
   // Main app content when unlocked
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      {/* Install Prompt */}
+      <InstallPrompt
+        show={showInstallPrompt}
+        onInstall={installPWA}
+        onDismiss={dismissInstallPrompt}
+      />
+
+      {/* Currency Notification */}
+      <CurrencyNotification
+        show={showCurrencyNotification}
+        onClose={() => setShowCurrencyNotification(false)}
+        onGoToSettings={handleGoToSettings}
+        currentCurrency={currency}
+      />
       {/* Debug Panel */}
       {showDebug && (
         <div className="fixed top-20 right-4 bg-yellow-100 border border-yellow-400 rounded-lg p-4 z-50 max-w-sm">

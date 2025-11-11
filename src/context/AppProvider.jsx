@@ -10,6 +10,8 @@ import { databaseManager } from '../core/DatabaseManager';
 import { intelligenceEngine } from '../core/IntelligenceEngine';
 import { AppContext } from './AppContext';
 
+import { CURRENCIES, DEFAULT_CURRENCY } from '../utils/constants';
+
 // Reducer
 const appReducer = (state, action) => {
     switch (action.type) {
@@ -55,6 +57,7 @@ export const AppProvider = ({ children }) => {
         dbInitialized: false
     });
 
+    const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
     const { toast, showToast, success, error: errorToast, info, warn } = useToast();
     const {
         encryptionKey,
@@ -107,7 +110,27 @@ export const AppProvider = ({ children }) => {
 
         init();
     }, []);
+    const updateCurrency = async (newCurrency) => {
+        const validCurrency = CURRENCIES.find(c => c.code === newCurrency) ? newCurrency : DEFAULT_CURRENCY;
+        dispatch({ type: 'SET_CURRENCY', payload: validCurrency });
 
+        // Save to database
+        if (databaseManager && databaseManager.isInitialized) {
+            try {
+                await databaseManager.put('settings', {
+                    key: 'currency',
+                    value: validCurrency,
+                    timestamp: new Date().toISOString()
+                });
+                return validCurrency;
+            } catch (error) {
+                console.error('Failed to save currency setting:', error);
+                return { success: false, error: error.message };
+            }
+        }
+
+        return validCurrency;
+    };
     // Load initial data with proper error handling
     const loadInitialData = async () => {
         try {
@@ -591,6 +614,8 @@ export const AppProvider = ({ children }) => {
         calculateFinancialScore,
         toggleTheme: () => dispatch({ type: 'TOGGLE_THEME' }),
         setView: (view) => dispatch({ type: 'SET_VIEW', payload: view }),
+        setCurrency: updateCurrency,
+        currencies: CURRENCIES,// Provide list of supported currencies
         saveOnboardingData,
         securityManager,
         databaseManager,

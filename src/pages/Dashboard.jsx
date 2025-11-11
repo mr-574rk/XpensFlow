@@ -1,5 +1,5 @@
+// src/pages/Dashboard.jsx - \
 /* eslint-disable no-unused-vars */
-
 import React, { useState } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Zap } from 'lucide-react';
 import { FinancialScoreCard } from '../components/FinancialScoreCard';
@@ -8,9 +8,11 @@ import { AnalyticsDashboard } from '../components/AnalyticsDashboard';
 import { InsightsDashboard } from '../components/InsightsDashboard';
 import { CATEGORIES } from '../utils/constants';
 import { formatters } from '../utils/formatters';
+import { useApp } from '../context/useApp'; // Import the hook
 
 export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) => {
     const [showInsights, setShowInsights] = useState(false);
+    const { currency } = useApp(); // Get currency from context
 
     const thisMonth = new Date().toISOString().slice(0, 7);
     const lastMonth = new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().slice(0, 7);
@@ -55,7 +57,7 @@ export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) =>
                 <div>
                     <h2 className="text-2xl font-bold dark:text-white">Dashboard</h2>
                     <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        Your financial overview
+                        Your financial overview ({currency})
                     </p>
                 </div>
                 <button
@@ -91,7 +93,7 @@ export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) =>
                         <span className="text-sm opacity-90">Income</span>
                         <TrendingUp size={20} />
                     </div>
-                    <div className="text-3xl font-bold">{formatters.currency(totalIncome)}</div>
+                    <div className="text-3xl font-bold">{formatters.currency(totalIncome, currency)}</div>
                     <div className="text-xs mt-2 opacity-80">This month</div>
                 </div>
 
@@ -100,7 +102,7 @@ export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) =>
                         <span className="text-sm opacity-90">Expenses</span>
                         <TrendingDown size={20} />
                     </div>
-                    <div className="text-3xl font-bold">{formatters.currency(totalExpense)}</div>
+                    <div className="text-3xl font-bold">{formatters.currency(totalExpense, currency)}</div>
                     <div className="text-xs mt-2 opacity-80">This month</div>
                 </div>
 
@@ -110,13 +112,13 @@ export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) =>
                         <span className="text-sm opacity-90">Balance</span>
                         <DollarSign size={20} />
                     </div>
-                    <div className="text-3xl font-bold">{formatters.currency(Math.abs(balance))}</div>
+                    <div className="text-3xl font-bold">{formatters.currency(Math.abs(balance), currency)}</div>
                     <div className="text-xs mt-2 opacity-80">
                         {balance >= 0 ? 'Positive' : 'Negative'}
                     </div>
                 </div>
 
-                <FinancialScoreCard score={financialScore} />
+                <FinancialScoreCard score={financialScore} currency={currency} />
             </div>
 
             {/* Budget Status */}
@@ -139,6 +141,7 @@ export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) =>
                                         limit={limit}
                                         spent={spent}
                                         icon={categoryInfo?.icon || '📌'}
+                                        currency={currency}
                                     />
                                 );
                             })}
@@ -166,7 +169,7 @@ export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) =>
                                 </div>
                                 <div className="text-right">
                                     <div className="font-bold text-lg dark:text-white">
-                                        {formatters.currency(cat.spent)}
+                                        {formatters.currency(cat.spent, currency)}
                                     </div>
                                     <div className="text-sm text-gray-500 dark:text-gray-400">
                                         #{index + 1}
@@ -179,7 +182,7 @@ export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) =>
             )}
 
             {/* Analytics Dashboard */}
-            <AnalyticsDashboard transactions={transactions} />
+            <AnalyticsDashboard transactions={transactions} currency={currency} />
 
             {/* Insights Modal */}
             {showInsights && (
@@ -187,8 +190,9 @@ export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) =>
                     transactions={transactions}
                     budgets={budgets}
                     onClose={() => setShowInsights(false)}
+                    currency={currency}
                 />
             )}
         </div>
     );
-};
+}; z

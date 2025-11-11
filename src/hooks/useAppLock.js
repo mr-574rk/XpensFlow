@@ -1,0 +1,275 @@
+/* eslint-disable no-unused-vars */
+// src/components/AppLockScreen.jsx - Fixed version
+import React, { useState, useEffect, useRef } from 'react';
+import { Lock, Fingerprint, Eye, EyeOff, Shield, CheckCircle } from 'lucide-react';
+import { useApp } from '../context/useApp';
+
+export const AppLockScreen = () => {
+    const {
+        unlockEncryption,
+        showToast,
+        securityManager,
+        setView,
+        currentView
+    } = useApp();
+
+    const [pin, setPin] = useState('');
+    const [showPin, setShowPin] = useState(false);
+    const [isUnlocking, setIsUnlocking] = useState(false);
+    const [failedAttempts, setFailedAttempts] = useState(0);
+    const [lockoutTime, setLockoutTime] = useState(0);
+    const [unlockSuccess, setUnlockSuccess] = useState(false);
+    const inputRef = useRef(null);
+
+    const MAX_ATTEMPTS = 5;
+    const LOCKOUT_DURATION = 300000; // 5 minutes in milliseconds
+
+    useEffect(() => {
+        // Focus input when component mounts
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+
+        // Check if app is actually locked
+        if (securityManager && securityManager.isInitialized()) {
+            console.log('Security manager reports app is unlocked, but lock screen is showing');
+        }
+    }, [securityManager]);
+
+    useEffect(() => {
+        // Check if we're in lockout period
+        if (lockoutTime > 0) {
+            const timer = setInterval(() => {
+                const remaining = Math.ceil((lockoutTime - Date.now()) / 1000);
+                if (remaining <= 0) {
+                    setLockoutTime(0);
+                    setFailedAttempts(0);
+                }
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+    }, [lockoutTime]);
+
+    const handleUnlock = async (e) => {
+        e.preventDefault();
+
+        if (lockoutTime > 0) {
+            const remaining = Math.ceil((lockoutTime - Date.now()) / 1000);
+            showToast(`Too many failed attempts. Try again in ${remaining} seconds.`, 'error');
+            return;
+        }
+
+        if (pin.length < 6) {
+            showToast('PIN must be at least 6 characters', 'error');
+            return;
+        }
+
+        setIsUnlocking(true);
+
+        try {
+            console.log('Attempting unlock with PIN...');
+            const result = await unlockEncryption(pin);
+            console.log('Unlock result:', result);
+
+            if (result && result.success) {
+                // Success - show success state and redirect
+                setUnlockSuccess(true);
+                showToast('Welcome back! App unlocked successfully.', 'success');
+
+                // Wait a moment to show success, then the component will unmount
+                setTimeout(() => {
+                    setPin('');
+                    setFailedAttempts(0);
+                    // The parent component should detect the unlocked state and hide this screen
+                }, 1000);
+
+            } else {
+                // Failure - show appropriate error
+                const newAttempts = failedAttempts + 1;
+                setFailedAttempts(newAttempts);
+
+                const errorMessage = result?.error || 'Wrong PIN';
+                let userMessage = errorMessage;
+
+                if (newAttempts >= MAX_ATTEMPTS) {
+                    const lockoutUntil = Date.now() + LOCKOUT_DURATION;
+                    setLockoutTime(lockoutUntil);
+                    userMessage = `Too many failed attempts. Locked for 5 minutes.`;
+                } else {
+                    userMessage = `${errorMessage}. ${MAX_ATTEMPTS - newAttempts} attempts remaining.`;
+                }
+
+                showToast(userMessage, 'error');
+                setPin(''); // Clear PIN on failure
+
+                // Refocus input
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                }
+            }
+        } catch (error) {
+            console.error('Unlock error:', error);
+            showToast('Unlock failed. Please try again.', 'error');
+            setPin(''); // Clear PIN on error
+        } finally {
+            setIsUnlocking(false);
+        }
+    };
+
+    const handleBiometricUnlock = async () => {
+        if (!('credentials' in navigator)) {
+            showToast('Biometric authentication not supported in this browser', 'info');
+            return;
+        }
+
+        try {
+            // WebAuthn API for biometric authentication
+            const credential = await navigator.credentials.get({
+                publicKey: {
+                    challenge: new Uint8Array(32),
+                    allowCredentials: [],
+                    timeout: 60000,
+                    userVerification: 'required'
+                }
+            });
+
+            if (credential) {
+                // For demo purposes, we'll simulate successful biometric auth
+                showToast('Biometric authentication successful!', 'success');
+                setUnlockSuccess(true);
+
+                setTimeout(() => {
+                    // The parent will detect unlocked state
+                }, 1000);
+            }
+        } catch (error) {
+            showToast('Biometric authentication failed or canceled', 'error');
+        }
+    };
+
+    const isLockedOut = lockoutTime > 0;
+    const remainingTime = isLockedOut ? Math.ceil((lockoutTime - Date.now()) / 1000) : 0;
+
+    // If unlock was successful, show success state
+    if (unlockSuccess) {
+        return (
+            <div className="fixed inset-0 bg-gradient-to-br from-green-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 z-50 flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+                    <div className="mb-6">
+                        <CheckCircle size={64} className="text-green-500 mx-auto mb-4" />
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                            Unlocked Successfully!
+                        </h1>
+                        <p className="text-gray-600 dark:text-gray-400">
+                            Redirecting you to your dashboard...
+                        </p>
+                    </div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+                {/* App Icon & Title */}
+                <div className="mb-8">
+                    <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl shadow-lg mb-4">
+                        💸
+                    </div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                        ExpenseFlow
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400">
+                        Your data is locked for security
+                    </p>
+                </div>
+
+                {/* Security Status */}
+                <div className="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-6">
+                    <div className="flex items-center justify-center gap-2 text-yellow-800 dark:text-yellow-200">
+                        <Shield size={20} />
+                        <span className="font-medium">App Locked</span>
+                    </div>
+                    <p className="text-sm mt-1 text-yellow-700 dark:text-yellow-300">
+                        {isLockedOut
+                            ? `Too many failed attempts. Try again in ${remainingTime} seconds.`
+                            : 'Enter your PIN to unlock your data'
+                        }
+                    </p>
+                    {failedAttempts > 0 && !isLockedOut && (
+                        <p className="text-sm mt-1 text-red-600 dark:text-red-400">
+                            {failedAttempts} failed attempt{failedAttempts > 1 ? 's' : ''}
+                        </p>
+                    )}
+                </div>
+
+                {/* PIN Input Form */}
+                <form onSubmit={handleUnlock} className="space-y-4">
+                    <div className="relative">
+                        <input
+                            ref={inputRef}
+                            type={showPin ? "text" : "password"}
+                            value={pin}
+                            onChange={(e) => setPin(e.target.value)}
+                            disabled={isLockedOut || isUnlocking}
+                            className="w-full p-4 text-center text-2xl font-mono border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white disabled:opacity-50"
+                            placeholder="Enter PIN"
+                            maxLength={20}
+                            autoComplete="off"
+                            autoFocus
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPin(!showPin)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            disabled={isLockedOut || isUnlocking}
+                        >
+                            {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
+
+                    {/* Unlock Button */}
+                    <button
+                        type="submit"
+                        disabled={isLockedOut || isUnlocking || pin.length < 6}
+                        className="w-full bg-blue-500 text-white py-4 rounded-xl font-medium hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {isUnlocking ? (
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                Unlocking...
+                            </>
+                        ) : (
+                            <>
+                                <Lock size={20} />
+                                Unlock App
+                            </>
+                        )}
+                    </button>
+                </form>
+
+                {/* Biometric Option */}
+                {!isLockedOut && (
+                    <div className="mt-6">
+                        <button
+                            onClick={handleBiometricUnlock}
+                            className="w-full border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition flex items-center justify-center gap-2"
+                        >
+                            <Fingerprint size={20} />
+                            Use Biometric
+                        </button>
+                    </div>
+                )}
+
+                {/* Security Tips */}
+                <div className="mt-8 text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                    <p>🔒 Your data is encrypted with AES-256</p>
+                    <p>📱 Auto-locks after inactivity</p>
+                    <p>💾 Stored securely on your device only</p>
+                </div>
+            </div>
+        </div>
+    );
+};

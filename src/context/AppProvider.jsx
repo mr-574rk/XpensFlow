@@ -52,12 +52,14 @@ export const AppProvider = ({ children }) => {
         darkMode: localStorage.getItem('darkMode') === 'true',
         encryptionEnabled: false,
         loading: true,
-        currency: 'USD',
+        currency: DEFAULT_CURRENCY, // Use DEFAULT_CURRENCY here
         categories: [],
         dbInitialized: false
     });
 
-    const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+    // REMOVE this duplicate currency state - we're using the one in reducer
+    // const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+
     const { toast, showToast, success, error: errorToast, info, warn } = useToast();
     const {
         encryptionKey,
@@ -110,6 +112,7 @@ export const AppProvider = ({ children }) => {
 
         init();
     }, []);
+
     const updateCurrency = async (newCurrency) => {
         const validCurrency = CURRENCIES.find(c => c.code === newCurrency) ? newCurrency : DEFAULT_CURRENCY;
         dispatch({ type: 'SET_CURRENCY', payload: validCurrency });
@@ -131,6 +134,7 @@ export const AppProvider = ({ children }) => {
 
         return validCurrency;
     };
+
     // Load initial data with proper error handling
     const loadInitialData = async () => {
         try {
@@ -615,7 +619,7 @@ export const AppProvider = ({ children }) => {
         toggleTheme: () => dispatch({ type: 'TOGGLE_THEME' }),
         setView: (view) => dispatch({ type: 'SET_VIEW', payload: view }),
         setCurrency: updateCurrency,
-        currencies: CURRENCIES,// Provide list of supported currencies
+        currencies: CURRENCIES,
         saveOnboardingData,
         securityManager,
         databaseManager,

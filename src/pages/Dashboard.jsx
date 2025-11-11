@@ -195,4 +195,4 @@ export const Dashboard = ({ transactions, budgets, calculateFinancialScore }) =>
             )}
         </div>
     );
-}; z
+};

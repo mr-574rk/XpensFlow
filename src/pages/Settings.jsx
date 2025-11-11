@@ -2,7 +2,7 @@
 // src/pages/Settings.jsx - UPDATED
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Lock, Unlock, Download, Upload, Moon, Sun, Trash2, Database, Shield } from 'lucide-react';
+import { Lock, Unlock, Download, Upload, Moon, Sun, Trash2, Database, Shield, Globe, CheckCircle } from 'lucide-react';
 import { CATEGORIES, CURRENCIES } from '../utils/constants';
 import { formatters } from '../utils/formatters';
 import { useApp } from '../context/useApp';
